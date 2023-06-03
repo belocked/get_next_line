@@ -34,6 +34,9 @@ char	*ft_get_next_line(int fd)
 {
 	char	*buf;
 	int		read_byte;
+
+	if (fd < 0 || BUFFER_SIZE <= 0)
+		return (NULL);
 	buf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
 	read_byte = read(fd, buf, BUFFER_SIZE);
 	if(read_byte < 1)
