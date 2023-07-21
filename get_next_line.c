@@ -11,35 +11,43 @@
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <stdio.h>
-#include <fcntl.h>
-int main()
+#include <unistd.h>
+
+char	*ft_read_to_left_str(int fd, char *left_str)
 {
-	int fd = open("./test", O_RDONLY);
-	int i = -10;
-	while(++i)
+	char	*buff;
+	int		rd_bytes;
+
+	buff = malloc((BUFFER_SIZE + 1) * sizeof(char));
+	if (!buff)
+		return (NULL);
+	rd_bytes = 1;
+	while (!ft_strchr(left_str, '\n') && rd_bytes != 0)
 	{
-		char *buf;
-		buf = ft_get_next_line(fd);
-		printf("%d: %s\n",i+10,buf);
-		int j =0;
-		while(buf[j])
+		rd_bytes = read(fd, buff, BUFFER_SIZE);
+		if (rd_bytes == -1)
 		{
-			printf("j(%d) : %c(%d)\n",j,buf[j],buf[j]);
-			j++;
+			free(buff);
+			return (NULL);
 		}
+		buff[rd_bytes] = '\0';
+		left_str = ft_strjoin(left_str, buff);
 	}
+	free(buff);
+	return (left_str);
 }
-char	*ft_get_next_line(int fd)
+
+char	*get_next_line(int fd)
 {
-	char	*buf;
-	int		read_byte;
+	char		*line;
+	static char	*left_str;
 
 	if (fd < 0 || BUFFER_SIZE <= 0)
+		return (0);
+	left_str = ft_read_to_left_str(fd, left_str);
+	if (!left_str)
 		return (NULL);
-	buf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-	read_byte = read(fd, buf, BUFFER_SIZE);
-	if(read_byte < 1)
-		return (NULL);
-	return buf;
+	line = ft_get_line(left_str);
+	left_str = ft_new_left_str(left_str);
+	return (line);
 }
