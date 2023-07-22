@@ -11,43 +11,79 @@
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <unistd.h>
 
-char	*ft_read_to_left_str(int fd, char *left_str)
+char	*free_all(void **backup)
 {
-	char	*buff;
-	int		rd_bytes;
-
-	buff = malloc((BUFFER_SIZE + 1) * sizeof(char));
-	if (!buff)
+	if (backup == NULL || *backup == NULL)
 		return (NULL);
-	rd_bytes = 1;
-	while (!ft_strchr(left_str, '\n') && rd_bytes != 0)
+	free(*backup);
+	*backup = NULL;
+	return (NULL);
+}
+
+char	*get_new_ret(char **backup)
+{
+	int		idx;
+	char	*ret;
+
+	idx = ft_strchr(*backup, '\n');
+	if (idx == -1)
 	{
-		rd_bytes = read(fd, buff, BUFFER_SIZE);
-		if (rd_bytes == -1)
-		{
-			free(buff);
-			return (NULL);
-		}
-		buff[rd_bytes] = '\0';
-		left_str = ft_strjoin(left_str, buff);
+		ret = ft_substr(*backup, 0, ft_strlen(*backup));
+		if (!ret)
+			return (free_all((void **)backup));
+		free_all((void **)backup);
+		return (ret);
 	}
-	free(buff);
-	return (left_str);
+	ret = ft_substr(*backup, 0, idx + 1);
+	if (!ret)
+		return (free_all((void **)backup));
+	return (ret);
+}
+
+char	*ch_init_backup(char **backup)
+{
+	int		i;
+	char	*tmp;
+
+	if (!(*backup))
+		*backup = (char *)ft_calloc(1, sizeof(char));
+	else if (ft_strchr(*backup, '\n') != -1)
+	{
+		i = ft_strchr(*backup, '\n');
+		tmp = *backup;
+		*backup = ft_substr(*backup, i + 1, ft_strlen(*backup) - i);
+		free_all((void **)&tmp);
+	}
+	if (!(*backup))
+		return (NULL);
+	return (*backup);
 }
 
 char	*get_next_line(int fd)
 {
-	char		*line;
-	static char	*left_str;
+	int			i;
+	ssize_t		size;
+	char		buf[BUFFER_SIZE + 1];
+	static char	*backup;
 
-	if (fd < 0 || BUFFER_SIZE <= 0)
-		return (0);
-	left_str = ft_read_to_left_str(fd, left_str);
-	if (!left_str)
+	i = 0;
+	if (fd < 0 || BUFFER_SIZE < 0)
 		return (NULL);
-	line = ft_get_line(left_str);
-	left_str = ft_new_left_str(left_str);
-	return (line);
+	backup = ch_init_backup(&backup);
+	if (!backup)
+		return (NULL);
+	while (ft_strchr(backup, '\n') == -1 && ++i)
+	{
+		size = read(fd, buf, BUFFER_SIZE);
+		if (size < 0)
+			return (free_all((void **)&backup));
+		buf[size] = 0;
+		backup = ft_strjoin(backup, buf);
+		if ((size == 0 && i == 1) && !(*backup))
+			return (free_all((void **)&backup));
+		if (size < BUFFER_SIZE)
+			break ;
+	}
+	return (get_new_ret(&backup));
 }
